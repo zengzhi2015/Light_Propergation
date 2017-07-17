@@ -1,30 +1,15 @@
-function target_distribution = f_wave_propergation( source_distribution, ...
-    focus_length, wave_length, lens2source, target2lens, lens_radius, target_position)
-%F_WAVE_PROPERGATION Summary of this function goes here
-% This function is used to calculate the electric field propergation of
-% light using wave oprics theory. Given the distribution of the
-% electric field on a plain parrallel to the lens, we calculate the
-% electric field of an arbitraty point in the opposite side of the lens,
-% except for those on the image plain (1/a + 1/b != 1/f).
-%   Detailed explanation goes here
-%   The coordinate id defined as follows:
-%       O: at the center of source plain
-%       Z: from the center of the source plain toward that of the lens
-%       X: in the lens plain and perpendicular to the Z axis
-%       Y: perpendicular to X and Z, and follow the right hand rule
-%   Inputs:
-%       source_distribution: {[us, ...;us, ...; ...],resolution}
-%       focus_length: f
-%       wave_length: l
-%       lens2source: a
-%       target2lens: b
-%       lens_radius: r
-%       target_position: [xt,yt]
-%   Outputs:
-%       target_distribution: ut
-%   Note:
-%       
+close all
+clear
+clc
+%% Set parameters
+focus_length = 2e-2;
+wave_length = 1e-14;
+lens2source = 5e-2;
+target2lens = 3e-2; 
+lens_radius = 1e-2;
 
+source_distribution = {zeros(512,512),2e-2/512};
+target_position = [0,0];
 %% Checkings
 % check the shape of the inputs
 sz_source_distribution = size(source_distribution);
@@ -79,9 +64,3 @@ ymin = -h/2*res;
 ymax = h/2*res;
 xmin = -w/2*res;
 xmax = w/2*res;
-
-% integration
-target_distribution = const*integral2(f_kernal,ymin,ymax,xmin,xmax);
-
-end
-
