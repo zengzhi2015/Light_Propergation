@@ -8,8 +8,36 @@ lens2source = 5e-2;
 target2lens = 3e-2; 
 lens_radius = 1e-2;
 
-source_distribution = {zeros(512,512),2e-2/512};
-target_position = [0,0];
+source_distribution = {zeros(2,2)+0.01,64e-2/512};
+target_distribution = {zeros(2,2),64e-2/512};
+% target_position = [0,0];
+
+%% Calculations
+td_size = size(target_distribution{1});
+td_h = td_size(1);
+td_w = td_size(2);
+td_res = target_distribution{2};
+td = target_distribution{1};
+
+parfor (row = 1:td_h, 8)
+    if mod(row,20)==0
+        disp('row: ', row)
+    end
+    for col = 1:td_w
+%         xt = (col-td_w/2)*td_res;
+%         yt = (row-td_h/2)*td_res;
+%         target_position = [xt,yt];
+%         target_value = f_s2p_wave_propergation( source_distribution, ...
+%             focus_length, wave_length, lens2source, target2lens, lens_radius, target_position);
+%         target_distribution{1}(row,col) = target_value;
+        td(row,col) = f_s2p_wave_propergation( source_distribution, ...
+            focus_length, wave_length, lens2source, target2lens, lens_radius, ...
+            [(col-td_w/2)*td_res,(row-td_h/2)*td_res]);
+    end
+end
+target_distribution{1} = td;
+% target_value = f_s2p_wave_propergation( source_distribution, ...
+%     focus_length, wave_length, lens2source, target2lens, lens_radius, target_position);
 %% Plot the lens
 THETA = 0:0.01:2*pi;
 X = lens_radius*cos(THETA);
@@ -32,13 +60,10 @@ C = X*0 + 0.3;
 fill3(X,Y,Z,C)
 % Plot the target plane
 hold on
-sp_sz = size(source_distribution{1});
-res = source_distribution{2};
+sp_sz = size(target_distribution{1});
+res = target_distribution{2};
 X = [sp_sz(2)/2*res, sp_sz(2)/2*res, -sp_sz(2)/2*res, -sp_sz(2)/2*res, sp_sz(2)/2*res];
 Y = [sp_sz(1)/2*res, -sp_sz(1)/2*res, -sp_sz(1)/2*res, sp_sz(1)/2*res, sp_sz(1)/2*res];
 Z = 0*X + lens2source + target2lens;
 C = X*0 + 0.7;
 fill3(X,Y,Z,C)
-%% Calculations
-target_distribution = f_s2p_wave_propergation( source_distribution, ...
-    focus_length, wave_length, lens2source, target2lens, lens_radius, target_position);
