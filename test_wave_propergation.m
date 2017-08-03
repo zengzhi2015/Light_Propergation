@@ -21,7 +21,7 @@ axis equal
 xlabel('x')
 ylabel('y')
 zlabel('z')
-%% Plot the source plane
+% Plot the source plane
 hold on
 sp_sz = size(source_distribution{1});
 res = source_distribution{2};
@@ -29,6 +29,15 @@ X = [sp_sz(2)/2*res, sp_sz(2)/2*res, -sp_sz(2)/2*res, -sp_sz(2)/2*res, sp_sz(2)/
 Y = [sp_sz(1)/2*res, -sp_sz(1)/2*res, -sp_sz(1)/2*res, sp_sz(1)/2*res, sp_sz(1)/2*res];
 Z = 0*X;
 C = X*0 + 0.3;
+fill3(X,Y,Z,C)
+% Plot the target plane
+hold on
+sp_sz = size(source_distribution{1});
+res = source_distribution{2};
+X = [sp_sz(2)/2*res, sp_sz(2)/2*res, -sp_sz(2)/2*res, -sp_sz(2)/2*res, sp_sz(2)/2*res];
+Y = [sp_sz(1)/2*res, -sp_sz(1)/2*res, -sp_sz(1)/2*res, sp_sz(1)/2*res, sp_sz(1)/2*res];
+Z = 0*X + lens2source + target2lens;
+C = X*0 + 0.7;
 fill3(X,Y,Z,C)
 %% Calculations
 target_distribution = f_wave_propergation( source_distribution, ...
