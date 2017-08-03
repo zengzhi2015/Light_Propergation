@@ -40,5 +40,5 @@ Z = 0*X + lens2source + target2lens;
 C = X*0 + 0.7;
 fill3(X,Y,Z,C)
 %% Calculations
-target_distribution = f_wave_propergation( source_distribution, ...
+target_distribution = f_s2p_wave_propergation( source_distribution, ...
     focus_length, wave_length, lens2source, target2lens, lens_radius, target_position);
