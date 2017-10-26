@@ -3,30 +3,24 @@ clear
 clc
 %% Set parameters
 focus_length = 50e-3;
-wave_length = 0.6e-3;
+wave_length = 1e-6;
 lens2source = 50e-3;
 target2lens = 30e-3; 
 lens_radius = 10e-3;
 
 source_distribution = {zeros(100,100)+0.01,10e-3/1024};
-target_distribution = {zeros(100,100),10e-3/1024};
+target_distribution_init = {zeros(100,100),0.000001e-3/1024};
 
 %% Calculations
+target_distribution = f_s2s_wave_propergation( source_distribution, ...
+    focus_length, wave_length, lens2source, target2lens, lens_radius, ...
+    target_distribution_init);
+%% Plot preparation
 td_size = size(target_distribution{1});
 td_h = td_size(1);
 td_w = td_size(2);
 td_res = target_distribution{2};
 td = target_distribution{1};
-
-parfor (row = 1:td_h, 8)
-%parfor row = 1:td_h
-    for col = 1:td_w
-        td(row,col) = f_s2p_wave_propergation_advance( source_distribution, ...
-            focus_length, wave_length, lens2source, target2lens, lens_radius, ...
-            [(col-td_w/2)*td_res,(row-td_h/2)*td_res]);
-    end
-end
-target_distribution{1} = td;
 %% Plot distributions
 figure(1)
 surf(abs(td),'EdgeAlpha',0.2)
