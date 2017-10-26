@@ -2,21 +2,22 @@ close all
 clear
 clc
 %% Set parameters
-% focus_length = 2e-2;
-% wave_length = 1e-14;
-% lens2source = 5e-2;
-% target2lens = 3e-2; 
-% lens_radius = 1e-2;
-focus_length = 2;
-wave_length = 0.5;
-lens2source = 5;
-target2lens = 3; 
-lens_radius = 1;
+focus_length = 50e-3;
+wave_length = 2e-3;
+lens2source = 50e-3;
+target2lens = 30e-3; 
+lens_radius = 10e-3;
+% The following parameters are for debugging
+% focus_length = 2;
+% wave_length = 0.02;
+% lens2source = 5;
+% target2lens = 3; 
+% lens_radius = 1;
 
-% source_distribution = {zeros(10,10)+0.01,64e-2/512};
-% target_distribution = {zeros(2,2),64e-2/512};
-source_distribution = {zeros(400,400)+1,0.64/512};
-target_distribution = {zeros(100,100),6.4/512};
+source_distribution = {zeros(100,100)+0.01,10e-3/1024};
+target_distribution = {zeros(100,100),10e-3/1024};
+% source_distribution = {zeros(400,400)+1,0.64/512};
+% target_distribution = {zeros(100,100),6.4/512};
 % target_position = [0,0];
 
 %% Calculations

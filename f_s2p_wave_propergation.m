@@ -87,6 +87,12 @@ xmax = w/2*res;
 
 % integration
 % target_distribution = const*integral2(f_kernal,ymin,ymax,xmin,xmax,'RelTol',1e-12,'AbsTol',1e-12);
-target_distribution = const*integral2(f_kernal,ymin,ymax,xmin,xmax);
+% target_distribution = const*integral2(f_kernal,ymin,ymax,xmin,xmax);
+% target_distribution = const*quad2d(f_kernal,ymin,ymax,xmin,xmax);
+x = xmin:(xmax-xmin)/100:xmax;
+y = ymin:(ymax-ymin)/100:ymax;
+[X,Y] = meshgrid(x,y);
+F = f_kernal(X,Y);
+target_distribution = const*trapz(y,trapz(x,F,2));
 end
 
