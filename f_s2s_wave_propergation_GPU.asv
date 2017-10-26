@@ -1,6 +1,6 @@
-function target_distribution = f_s2s_wave_propergation( source_distribution, ...
+function target_distribution = f_s2s_wave_propergation_GPU( source_distribution, ...
     focus_length, wave_length, lens2source, target2lens, lens_radius, ...
-    target_position, target_distribution_init)
+    target_distribution_init)
 %F_WAVE_PROPERGATION Summary of this function goes here
 % This function is used to calculate the electric field propergation of
 % light using wave oprics theory. Given the distribution of the
@@ -40,8 +40,6 @@ sz_target2lens = size(target2lens);
 assert(sz_target2lens(1)==1 && sz_target2lens(2)==1 && length(sz_target2lens)==2,'The shape of target2lens is not correct!')
 sz_lens_radius = size(lens_radius);
 assert(sz_lens_radius(1)==1 && sz_lens_radius(2)==1 && length(sz_lens_radius)==2,'The shape of lens_radius is not correct!')
-sz_target_position = size(target_position);
-assert(sz_target_position(1)==1 && sz_target_position(2)==2 && length(sz_focus_length)==2,'The shape of target_position is not correct!')
 % check to ensure the values are in range
 % assert(mod(sz_source_distribution(1),2)==0,mod(sz_source_distribution(2),2)==0,'Each side of the source plain should not contain odd number of pixels!')
 assert(focus_length>0,'focus_length should not be equal nor smaller than 0!')
@@ -50,15 +48,14 @@ assert(lens2source>0,'lens2source should not be equal nor smaller than 0!')
 assert(target2lens>0,'target2lens should not be equal nor smaller than 0!')
 assert(lens_radius>0,'lens_radius should not be equal nor smaller than 0!')
 assert(lens_radius>0,'target should not be at the same side with the source!')
+%% Calculations
 %% Initialize
 target_distribution = target_distribution_init;
-
-
 %% simple notations
 Us = source_distribution{1}; % all values of the source plain
-res = source_distribution{2}; % The resolution of the pixel
-h = sz_source_distribution(1); % The hight of the source plain in pixels
-w = sz_source_distribution(2); % The width of the source plain in pixels
+res_s = source_distribution{2}; % The resolution of the pixel
+h_s = sz_source_distribution(1); % The hight of the source plain in pixels
+w_s = sz_source_distribution(2); % The width of the source plain in pixels
 
 f = focus_length;
 l = wave_length;
@@ -73,46 +70,43 @@ assert(abs(alpha)>1e-6,'target plain should not be near the image plain!')
 
 %% preparations
 % The limits for the integration field
-ymin = -h/2*res;
-ymax = h/2*res;
-xmin = -w/2*res;
-xmax = w/2*res;
+y_s_min = -h_s/2*res_s;
+y_s_max = h_s/2*res_s;
+x_s_min = -w_s/2*res_s;
+x_smax = w_s/2*res_s;
 % Build meshgrid
-x = xmin:(xmax-xmin)/(w-1):xmax;
-y = ymin:(ymax-ymin)/(h-1):ymax;
+x = x_s_min:(xsmax-x_s_min)/(w_s-1):xsmax;
+y = y_s_min:(y_s_max-y_s_min)/(h_s-1):y_s_max;
 [X,Y] = meshgrid(x,y);
-% (m,m) -> (pixels,pixels) -> electral field intensity at that position
-f_us = @(ys,xs)interp2(X,Y,Us,xs,ys,'cubic');
-
-xt = target_position(1);
-yt = target_position(2);
+X_GPU = gpuArray(X);
+Y_GPU = gpuArray(Y);
+Us_GPU = gpuArray(Us);
 % Calculate the phase angle if the electical field: E = u(x,y)*exp(1i*theta)
-f_theta = @(ys,xs)-k/2*((xs.^2+ys.^2)/a+(xt^2+yt^2)/b+k/2/alpha*(xs/a+xt/b).^2+k/2/alpha*(ys/a+yt/b).^2);
+f_theta = @(yt,xt)-k/2*((X_GPU.^2+Y_GPU.^2)/a+(xt^2+yt^2)/b+k/2/alpha*(X_GPU/a+xt/b).^2+k/2/alpha*(Y_GPU/a+yt/b).^2);
 % Calculate the integration kernal: E = u(x,y)*exp(1i*theta)
-f_kernal = @(ys,xs)f_us(ys,xs).*exp(1i*f_theta(ys,xs));
+f_kernal = @(yt,xt)Us_GPU.*exp(1i*f_theta(yt,xt));
 % A constant scaling factor for the integration
 const = pi*exp(-1i*3/2*pi)/l^2/a/b*exp(-1i*k*zt)*exp(-1i*k/2/f*r^2)/alpha;
 
-% integration
-% target_distribution = const*integral2(f_kernal,ymin,ymax,xmin,xmax);
-F = f_kernal(X,Y);
-target_distribution = const*trapz(y,trapz(x,F,2));
 %% Calculations
 td_size = size(target_distribution{1});
 td_h = td_size(1);
 td_w = td_size(2);
 td_res = target_distribution{2};
-td = target_distribution{1};
+td = gpuArray(target_distribution{1});
 
-parfor (row = 1:td_h, 8)
-%parfor row = 1:td_h
+
+
+for row = 1:td_h
     for col = 1:td_w
-        td(row,col) = f_s2p_wave_propergation_advance( source_distribution, ...
-            focus_length, wave_length, lens2source, target2lens, lens_radius, ...
-            [(col-td_w/2)*td_res,(row-td_h/2)*td_res]);
+        xt = (col-td_w/2)*td_res;
+        yt = (row-td_h/2)*td_res;
+        % integration
+        F = f_kernal(yt,xt);
+        td(row,col) = const*trapz(y,trapz(x,F,2));
     end
 end
-target_distribution{1} = td;
+target_distribution{1} = gather(td);
 end
 
 

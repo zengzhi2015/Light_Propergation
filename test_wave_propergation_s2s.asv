@@ -8,7 +8,7 @@ lens2source = 50e-3;
 target2lens = 30e-3; 
 lens_radius = 10e-3;
 
-source_distribution = {zeros(2000,2000)+0.01, 0.5e-3/1024};
+source_distribution = {zeros(2000,2000)+0.01, 0.0e-3/1024};
 target_distribution_init = {zeros(100,100), 0.000001e-3/1024};
 
 %% Calculations

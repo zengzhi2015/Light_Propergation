@@ -1,4 +1,4 @@
-function target_distribution = f_s2s_wave_propergation( source_distribution, ...
+function target_distribution = f_s2s_wave_propergation_GPU( source_distribution, ...
     focus_length, wave_length, lens2source, target2lens, lens_radius, ...
     target_distribution_init)
 %F_WAVE_PROPERGATION Summary of this function goes here
@@ -53,9 +53,9 @@ assert(lens_radius>0,'target should not be at the same side with the source!')
 target_distribution = target_distribution_init;
 %% simple notations
 Us = source_distribution{1}; % all values of the source plain
-res = source_distribution{2}; % The resolution of the pixel
-h = sz_source_distribution(1); % The hight of the source plain in pixels
-w = sz_source_distribution(2); % The width of the source plain in pixels
+res_s = source_distribution{2}; % The resolution of the pixel
+h_s = sz_source_distribution(1); % The hight of the source plain in pixels
+w_s = sz_source_distribution(2); % The width of the source plain in pixels
 
 f = focus_length;
 l = wave_length;
@@ -70,18 +70,25 @@ assert(abs(alpha)>1e-6,'target plain should not be near the image plain!')
 
 %% preparations
 % The limits for the integration field
-ymin = -h/2*res;
-ymax = h/2*res;
-xmin = -w/2*res;
-xmax = w/2*res;
+y_s_min = -h_s/2*res_s;
+y_s_max = h_s/2*res_s;
+x_s_min = -w_s/2*res_s;
+x_s_max = w_s/2*res_s;
+disp(x_s_min)
+disp(x_s_max)
+disp(y_s_min)
+disp(y_s_max)
 % Build meshgrid
-x = xmin:(xmax-xmin)/(w-1):xmax;
-y = ymin:(ymax-ymin)/(h-1):ymax;
-[X,Y] = meshgrid(x,y);
+x_s = x_s_min:(x_s_max-x_s_min)/(w_s-1):x_s_max;
+y_s = y_s_min:(y_s_max-y_s_min)/(h_s-1):y_s_max;
+[Xs,Ys] = meshgrid(x_s,y_s);
+Xs_GPU = gpuArray(Xs);
+Ys_GPU = gpuArray(Ys);
+Us_GPU = gpuArray(Us);
 % Calculate the phase angle if the electical field: E = u(x,y)*exp(1i*theta)
-f_theta = @(yt,xt)-k/2*((X.^2+Y.^2)/a+(xt^2+yt^2)/b+k/2/alpha*(X/a+xt/b).^2+k/2/alpha*(Y/a+yt/b).^2);
+f_theta = @(yt,xt)-k/2*((Xs_GPU.^2+Ys_GPU.^2)/a+(xt^2+yt^2)/b+k/2/alpha*(Xs_GPU/a+xt/b).^2+k/2/alpha*(Ys_GPU/a+yt/b).^2);
 % Calculate the integration kernal: E = u(x,y)*exp(1i*theta)
-f_kernal = @(yt,xt)Us.*exp(1i*f_theta(yt,xt));
+f_kernal = @(yt,xt)Us_GPU.*exp(1i*f_theta(yt,xt));
 % A constant scaling factor for the integration
 const = pi*exp(-1i*3/2*pi)/l^2/a/b*exp(-1i*k*zt)*exp(-1i*k/2/f*r^2)/alpha;
 
@@ -90,18 +97,34 @@ td_size = size(target_distribution{1});
 td_h = td_size(1);
 td_w = td_size(2);
 td_res = target_distribution{2};
-td = target_distribution{1};
+td = gpuArray(target_distribution{1});
+% % The limits for the target field
+% y_t_min = -td_h/2*td_res;
+% y_t_max = td_h/2*td_res;
+% x_t_min = -td_w/2*td_res;
+% x_t_max = td_w/2*td_res;
+% % Build meshgrid
+% x_t = x_t_min:(x_t_max-x_t_min)/(td_w-1):x_t_max;
+% y_t = y_t_min:(y_t_max-y_t_min)/(td_h-1):y_t_max;
+% [Xt,Yt] = meshgrid(x_t,y_t);
+% Xt_GPU = gpuArray(Xt);
+% Yt_GPU = gpuArray(Yt);
 
-parfor (row = 1:td_h, 8)
+y_s_GPU = gpuArray(y_s);
+x_s_GPU = gpuArray(x_s);
+
+% td = arrayfun(@(yt,xt)const*trapz(y_s_GPU,trapz(x_s_GPU,f_kernal(yt,xt),2)),Yt_GPU,Xt_GPU);
+
+for row = 1:td_h
     for col = 1:td_w
         xt = (col-td_w/2)*td_res;
         yt = (row-td_h/2)*td_res;
         % integration
         F = f_kernal(yt,xt);
-        td(row,col) = const*trapz(y,trapz(x,F,2));
+        td(row,col) = const*trapz(y_s_GPU,trapz(x_s_GPU,F,2));
     end
 end
-target_distribution{1} = td;
+target_distribution{1} = gather(td);
 end
 
 
